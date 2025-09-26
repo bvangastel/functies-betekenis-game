@@ -10,8 +10,6 @@
     <!-- React and ReactDOM (UMD builds) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Framer Motion (UMD) -->
-    <script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
     <!-- Babel for JSX transformation in the browser (only for demo/testing) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
@@ -157,17 +155,18 @@
         </div>
       );
 
-      // Card component: displays term on front and info on back with flip animation
+      // Card component: displays term on front and info on back with flip animation.
+      // Instead of using Framer Motion, we apply CSS transform and transition directly.
       function Card({ card, flipped, onFlip, feedback, dark = false }) {
-        const rotateY = flipped ? 180 : 0;
+        // Compute the rotate transform depending on flipped state
+        const rotateY = flipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
         return (
           <div className="relative mx-auto w-full max-w-md select-none" style={{ perspective: '1200px' }}>
-            <motion.div
+            <div
               className="relative h-56 w-full cursor-pointer sm:h-64"
               onClick={onFlip}
-              animate={{ rotateY }}
-              transition={{ duration: 0.5 }}
-              style={{ transformStyle: 'preserve-3d' }}
+              // Apply rotation and transition for flipping effect
+              style={{ transform: rotateY, transition: 'transform 0.5s', transformStyle: 'preserve-3d' }}
             >
               {/* Front of card */}
               <div
@@ -186,7 +185,7 @@
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">{card.back}</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
             {feedback && (
               <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs text-white shadow ${feedback === 'correct' ? 'bg-green-700' : 'bg-red-700'}`}> 
                 {feedback === 'correct' ? '✓ Goed!' : '✗ Niet goed'}
