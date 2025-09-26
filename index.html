@@ -5,62 +5,71 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Functies - Betekenis: de Game!</title>
 
-    <!-- Tailwind (CDN) -->
+    <!-- Tailwind via CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- React 18 + ReactDOM (UMD) -->
+    <!-- React and ReactDOM (UMD builds) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
     <!-- Framer Motion (UMD) -->
     <script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
-
-    <!-- Babel voor JSX in de browser (ontwikkel/demo gebruik) -->
+    <!-- Babel for JSX transformation in the browser (only for demo/testing) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   </head>
   <body class="min-h-screen">
     <div id="root"></div>
 
-    <!-- JOUW GAME (React + Framer Motion + Tailwind via CDN) -->
+    <!-- Application code. Using Babel for in‑browser JSX transformation. -->
     <script type="text/babel">
-      const { useEffect, useMemo, useRef, useState } = React;
-      const { motion } = window.framerMotion;
+      // Extract React hooks
+      const { useState, useEffect, useMemo, useRef } = React;
+      /*
+       * Framer Motion fallback: if the UMD bundle doesn't expose a global
+       * motion object (window.framerMotion or window.Motion), provide a
+       * minimal fallback so the app can render without errors. This stub
+       * returns a simple <div> for motion.div when framer-motion isn't loaded.
+       */
+      const fm = window.Motion || window.framerMotion || {};
+      const motion = fm.motion || {
+        div: ({ children, ...props }) => React.createElement('div', props, children),
+      };
 
-      // Kleuren
-      const ACCENT = "#e20074"; // magenta
+      // Accent colour used throughout the UI
+      const ACCENT = '#e20074';
 
-      // --- Dataset -----------------------------------------------------------
+      // Dataset for flashcards. Each card describes a term with its type and
+      // example text on the back. Types are 'functie', 'betekenis' or 'beide'.
       const RAW_CARDS = [
-        { term: "Gezondheid", type: "beide", back: `Functie: Sportbeleid om ziekteverzuim te verlagen.\n✅ Minder zorgkosten, fittere bevolking.\n❌ Druk tot bewegen, ongelijkheid in toegang.\n\nBetekenis: Iemand die hardloopt om stress kwijt te raken.\n✅ Beter welzijn, meer energie.\n❌ Blessures, burn-out.` },
-        { term: "Economisch", type: "beide", back: `Functie: WK Voetbal met miljardenomzet via tv-rechten en sponsoring.\n✅ Werkgelegenheid, economische groei.\n❌ Winst niet bij lokale bevolking, uitbuiting.\n\nBetekenis: Topsporter of trainer die betaald krijgt.\n✅ Persoonlijke financiële zekerheid, erkenning.\n❌ Grote prestatiedruk, korte loopbaan.` },
-        { term: "Identificatie", type: "betekenis", back: `Fan voelt zich deel van Feyenoord.\n✅ Gevoel ergens bij te horen.\n❌ Hooliganisme, teleurstelling bij verlies.` },
-        { term: "Socialisatie", type: "beide", back: `Functie: Sportverenigingen leren kinderen discipline en samenwerking.\n✅ Fair play, maatschappelijke waarden.\n❌ Drill of conformisme.\n\nBetekenis: Tiener leert via basketbal zelfvertrouwen en teamwork.\n✅ Versterkt persoonlijkheid en vaardigheden.\n❌ Risico op agressie of deviant gedrag.` },
-        { term: "Democratisering", type: "functie", back: `Voetbaltoernooien waar alle kinderen mogen meedoen.\n✅ Gelijke kansen, toegankelijkheid.\n❌ Financiële/culturele drempels blijven.` },
-        { term: "Distinctie", type: "betekenis", back: `Golf of polo als elitesport.\n✅ Status tonen, eigen smaak benadrukken.\n❌ Klassenverschillen, uitsluiting.` },
-        { term: "Herstel", type: "betekenis", back: `Recreatief zwemmen na werk.\n✅ Stressvermindering, ontspanning.\n❌ Soms geen effect, of nieuwe vermoeidheid.` },
-        { term: "Identiteit", type: "betekenis", back: `Scheidsrechter die identiteit ontleent aan zijn rol.\n✅ Duidelijk zelfbeeld, erkenning.\n❌ Chauvinisme of verlies van rol na carrière.` },
-        { term: "Interactie", type: "betekenis", back: `Ouderen die lid blijven van een tennisvereniging.\n✅ Sociaal netwerk, vriendschappen.\n❌ Conflicten of rivaliteit.` },
-        { term: "Integratie", type: "functie", back: `Migrantenjongeren in lokale voetbalclubs.\n✅ Sociale cohesie.\n❌ Segregatie of discriminatie mogelijk.` },
-        { term: "Militair", type: "functie", back: `Sovjet-fitnessprogramma gericht op paraatheid.\n✅ Discipline, fysieke paraatheid.\n❌ Instrumentalisering voor militaire doelen.` },
-        { term: "Ontlading (catharsis)", type: "betekenis", back: `Boksen of spinning om frustraties kwijt te raken.\n✅ Minder stress en spanning.\n❌ Agressie kan toenemen bij frustratie/verlies.` },
-        { term: "Ontspanning", type: "betekenis", back: `Kijken naar de Tour de France.\n✅ Ontsnapping, vermaak.\n❌ Commercieel spektakel, oppervlakkigheid.` },
-        { term: "Ontwikkeling / zelfontplooiing", type: "betekenis", back: `Aikido als pad naar zelfdiscipline en zelfkennis.\n✅ Zelfvertrouwen, morele vorming.\n❌ Machogedrag of afhankelijkheid van autoritaire trainers.` },
-        { term: "Plezier / hedonisme", type: "betekenis", back: `Voetballen op straat met vrienden puur voor de lol.\n✅ Genot, humor, speelsheid.\n❌ Overmatig escapisme, vrijblijvendheid.` },
-        { term: "Maatschappelijke controle", type: "functie", back: `Gemeente investeert in sportclubs om jeugd van straat te houden.\n✅ Ordescheppend, voorkomt criminaliteit.\n❌ Repressief of instrumenteel ingezet.` },
-        { term: "Politiek", type: "functie", back: `Olympische Spelen 1936 als propaganda.\n✅ Diplomatiek/ideologisch instrument.\n❌ Misbruik voor politieke doeleinden.` },
-        { term: "Reproductie van ideologie", type: "functie", back: `Olympisch vuur, vlagceremonies.\n✅ Nationale eenheid en waarden.\n❌ Bevestigt nationalisme of ongelijkheid.` },
-        { term: "Reproductie van klassenverhoudingen", type: "functie", back: `Skyboxen in stadions.\n✅ Zichtbaarheid van doelgroepen (marketing).\n❌ Vergroten van ongelijkheid.` },
-        { term: "Reproductie van sekseverhoudingen", type: "functie", back: `Vrouwenvoetbal minder media-aandacht.\n✅ Kansen voor female empowerment.\n❌ Sekseongelijkheid, risico op misbruik.` },
-        { term: "Status", type: "betekenis", back: `High school quarterback met hoge populariteit.\n✅ Prestige, sociale erkenning.\n❌ Uitsluiting van minder getalenteerden.` },
-        { term: "Sociale mobiliteit", type: "functie", back: `Arme voetballer wordt prof in Europa.\n✅ Opwaartse sociale stijging.\n❌ Vaak mythe; succes tijdelijk/uitzonderlijk.` },
-        { term: "Taal (linguïstisch)", type: "functie", back: `Media: "Politiek is topsport".\n✅ Gemeenschappelijke codes, communicatie.\n❌ Clichés, simplificatie.` },
-        { term: "Vervreemding", type: "functie", back: `Turnsters onder zware druk vanaf jonge leeftijd.\n✅ Topsportprestaties mogelijk.\n❌ Verlies autonomie, vervreemding van lichaam.` },
+        { term: 'Gezondheid', type: 'beide', back: `Functie: Sportbeleid om ziekteverzuim te verlagen.\n✅ Minder zorgkosten, fittere bevolking.\n❌ Druk tot bewegen, ongelijkheid in toegang.\n\nBetekenis: Iemand die hardloopt om stress kwijt te raken.\n✅ Beter welzijn, meer energie.\n❌ Blessures, burn-out.` },
+        { term: 'Economisch', type: 'beide', back: `Functie: WK Voetbal met miljardenomzet via tv-rechten en sponsoring.\n✅ Werkgelegenheid, economische groei.\n❌ Winst niet bij lokale bevolking, uitbuiting.\n\nBetekenis: Topsporter of trainer die betaald krijgt.\n✅ Persoonlijke financiële zekerheid, erkenning.\n❌ Grote prestatiedruk, korte loopbaan.` },
+        { term: 'Identificatie', type: 'betekenis', back: `Fan voelt zich deel van Feyenoord.\n✅ Gevoel ergens bij te horen.\n❌ Hooliganisme, teleurstelling bij verlies.` },
+        { term: 'Socialisatie', type: 'beide', back: `Functie: Sportverenigingen leren kinderen discipline en samenwerking.\n✅ Fair play, maatschappelijke waarden.\n❌ Drill of conformisme.\n\nBetekenis: Tiener leert via basketbal zelfvertrouwen en teamwork.\n✅ Versterkt persoonlijkheid en vaardigheden.\n❌ Risico op agressie of deviant gedrag.` },
+        { term: 'Democratisering', type: 'functie', back: `Voetbaltoernooien waar alle kinderen mogen meedoen.\n✅ Gelijke kansen, toegankelijkheid.\n❌ Financiële/culturele drempels blijven.` },
+        { term: 'Distinctie', type: 'betekenis', back: `Golf of polo als elitesport.\n✅ Status tonen, eigen smaak benadrukken.\n❌ Klassenverschillen, uitsluiting.` },
+        { term: 'Herstel', type: 'betekenis', back: `Recreatief zwemmen na werk.\n✅ Stressvermindering, ontspanning.\n❌ Soms geen effect, of nieuwe vermoeidheid.` },
+        { term: 'Identiteit', type: 'betekenis', back: `Scheidsrechter die identiteit ontleent aan zijn rol.\n✅ Duidelijk zelfbeeld, erkenning.\n❌ Chauvinisme of verlies van rol na carrière.` },
+        { term: 'Interactie', type: 'betekenis', back: `Ouderen die lid blijven van een tennisvereniging.\n✅ Sociaal netwerk, vriendschappen.\n❌ Conflicten of rivaliteit.` },
+        { term: 'Integratie', type: 'functie', back: `Migrantenjongeren in lokale voetbalclubs.\n✅ Sociale cohesie.\n❌ Segregatie of discriminatie mogelijk.` },
+        { term: 'Militair', type: 'functie', back: `Sovjet-fitnessprogramma gericht op paraatheid.\n✅ Discipline, fysieke paraatheid.\n❌ Instrumentalisering voor militaire doelen.` },
+        { term: 'Ontlading (catharsis)', type: 'betekenis', back: `Boksen of spinning om frustraties kwijt te raken.\n✅ Minder stress en spanning.\n❌ Agressie kan toenemen bij frustratie/verlies.` },
+        { term: 'Ontspanning', type: 'betekenis', back: `Kijken naar de Tour de France.\n✅ Ontsnapping, vermaak.\n❌ Commercieel spektakel, oppervlakkigheid.` },
+        { term: 'Ontwikkeling / zelfontplooiing', type: 'betekenis', back: `Aikido als pad naar zelfdiscipline en zelfkennis.\n✅ Zelfvertrouwen, morele vorming.\n❌ Machogedrag of afhankelijkheid van autoritaire trainers.` },
+        { term: 'Plezier / hedonisme', type: 'betekenis', back: `Voetballen op straat met vrienden puur voor de lol.\n✅ Genot, humor, speelsheid.\n❌ Overmatig escapisme, vrijblijvendheid.` },
+        { term: 'Maatschappelijke controle', type: 'functie', back: `Gemeente investeert in sportclubs om jeugd van straat te houden.\n✅ Ordescheppend, voorkomt criminaliteit.\n❌ Repressief of instrumenteel ingezet.` },
+        { term: 'Politiek', type: 'functie', back: `Olympische Spelen 1936 als propaganda.\n✅ Diplomatiek/ideologisch instrument.\n❌ Misbruik voor politieke doeleinden.` },
+        { term: 'Reproductie van ideologie', type: 'functie', back: `Olympisch vuur, vlagceremonies.\n✅ Nationale eenheid en waarden.\n❌ Bevestigt nationalisme of ongelijkheid.` },
+        { term: 'Reproductie van klassenverhoudingen', type: 'functie', back: `Skyboxen in stadions.\n✅ Zichtbaarheid van doelgroepen (marketing).\n❌ Vergroten van ongelijkheid.` },
+        { term: 'Reproductie van sekseverhoudingen', type: 'functie', back: `Vrouwenvoetbal minder media-aandacht.\n✅ Kansen voor female empowerment.\n❌ Sekseongelijkheid, risico op misbruik.` },
+        { term: 'Status', type: 'betekenis', back: `High school quarterback met hoge populariteit.\n✅ Prestige, sociale erkenning.\n❌ Uitsluiting van minder getalenteerden.` },
+        { term: 'Sociale mobiliteit', type: 'functie', back: `Arme voetballer wordt prof in Europa.\n✅ Opwaartse sociale stijging.\n❌ Vaak mythe; succes tijdelijk/uitzonderlijk.` },
+        { term: 'Taal (linguïstisch)', type: 'functie', back: `Media: "Politiek is topsport".\n✅ Gemeenschappelijke codes, communicatie.\n❌ Clichés, simplificatie.` },
+        { term: 'Vervreemding', type: 'functie', back: `Turnsters onder zware druk vanaf jonge leeftijd.\n✅ Topsportprestaties mogelijk.\n❌ Verlies autonomie, vervreemding van lichaam.` },
       ];
 
-      const TYPE_LABELS = { functie: "Functie", betekenis: "Betekenis", beide: "Beide" };
-      const TYPE_ORDER = ["functie", "betekenis", "beide"];
+      // Mapping of types to display labels and order for challenge selection
+      const TYPE_LABELS = { functie: 'Functie', betekenis: 'Betekenis', beide: 'Beide' };
+      const TYPE_ORDER = ['functie', 'betekenis', 'beide'];
 
-      // Helpers ---------------------------------------------------------------
+      // Utility: shuffle an array (Fisher-Yates)
       function shuffle(arr) {
         const a = [...arr];
         for (let i = a.length - 1; i > 0; i--) {
@@ -69,72 +78,168 @@
         }
         return a;
       }
+
+      // Quick lookup of card types by term
       const CARD_TYPE_MAP = Object.fromEntries(RAW_CARDS.map((c) => [c.term, c.type]));
 
-      // Geluidseffecten via Web Audio (geen externe files)
+      /*
+       * Sound effects using the Web Audio API. This hook returns small functions
+       * to play sounds for correct, wrong, flip and shuffle actions. If the
+       * environment doesn't support AudioContext (e.g. older browsers), the
+       * functions will simply no‑op.
+       */
       function useSounds() {
         const ctxRef = useRef(null);
         function ensureCtx() {
-          if (!ctxRef.current) ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          if (!ctxRef.current) {
+            try {
+              ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+              // If AudioContext cannot be created, stub out the context
+              ctxRef.current = { createOscillator: () => ({ connect: () => {}, start: () => {}, stop: () => {}, type: '', frequency: { value: 0 } }),
+                                 createGain: () => ({ connect: () => {}, gain: { value: 0 } }),
+                                 currentTime: 0,
+                               };
+            }
+          }
           return ctxRef.current;
         }
-        function beep({ freq = 660, duration = 0.12, type = "sine", vol = 0.05 } = {}) {
+        function beep({ freq = 660, duration = 0.12, type = 'sine', vol = 0.05 } = {}) {
           const ctx = ensureCtx();
+          if (!ctx.createOscillator) return;
           const o = ctx.createOscillator();
           const g = ctx.createGain();
-          o.type = type; o.frequency.value = freq;
-          g.gain.value = vol; o.connect(g); g.connect(ctx.destination);
-          o.start(); o.stop(ctx.currentTime + duration);
+          o.type = type;
+          o.frequency.value = freq;
+          g.gain.value = vol;
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+          o.stop(ctx.currentTime + duration);
         }
         return {
-          correct: () => { beep({ freq: 880, type: "triangle" }); setTimeout(() => beep({ freq: 1320, type: "triangle" }), 90); },
-          wrong: () => { beep({ freq: 200, type: "sawtooth" }); },
-          flip: () => { beep({ freq: 520, type: "square", duration: 0.07 }); },
-          shuffle: () => { beep({ freq: 660, type: "sine", duration: 0.06 }); beep({ freq: 740, duration: 0.06 }); beep({ freq: 820, duration: 0.06 }); },
+          correct: () => {
+            beep({ freq: 880, type: 'triangle' });
+            setTimeout(() => beep({ freq: 1320, type: 'triangle' }), 90);
+          },
+          wrong: () => {
+            beep({ freq: 200, type: 'sawtooth' });
+          },
+          flip: () => {
+            beep({ freq: 520, type: 'square', duration: 0.07 });
+          },
+          shuffle: () => {
+            beep({ freq: 660, type: 'sine', duration: 0.06 });
+            beep({ freq: 740, duration: 0.06 });
+            beep({ freq: 820, duration: 0.06 });
+          },
         };
       }
 
-      function pickExample(card) {
-        const lines = card.back.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-        const l = lines.find((x) => x.startsWith("Functie:")) || lines.find((x) => x.startsWith("Betekenis:")) || lines[0];
-        return l.replace(/^Functie:\s*|^Betekenis:\s*/i, "");
+      // UI component: Button with optional selected state and dark mode styling
+      const Btn = ({ children, className = '', dark = false, selected = false, style, ...props }) => {
+        const base = dark
+          ? 'rounded-xl border-2 border-white/20 bg-neutral-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-700 active:scale-[0.98] transition'
+          : 'rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-medium text-black shadow-sm hover:bg-fuchsia-50 active:scale-[0.98] transition';
+        const selStyle = selected ? { backgroundColor: ACCENT, borderColor: ACCENT, color: '#ffffff' } : {};
+        return (
+          <button {...props} style={{ ...(style || {}), ...selStyle }} className={`${base} ${className}`}>
+            {children}
+          </button>
+        );
+      };
+
+      // UI component: Statistic display
+      const Stat = ({ label, value, dark = false }) => (
+        <div className={`rounded-xl px-3 py-2 text-center shadow-sm ${dark ? 'border border-white/15 bg-neutral-900 text-white' : 'border border-fuchsia-200 bg-white text-black'}`}>
+          <div className={`text-[10px] uppercase tracking-wide ${dark ? 'text-gray-300' : 'text-gray-500'}`}>{label}</div>
+          <div className="text-xl font-semibold">{value}</div>
+        </div>
+      );
+
+      // Card component: displays term on front and info on back with flip animation
+      function Card({ card, flipped, onFlip, feedback, dark = false }) {
+        const rotateY = flipped ? 180 : 0;
+        return (
+          <div className="relative mx-auto w-full max-w-md select-none" style={{ perspective: '1200px' }}>
+            <motion.div
+              className="relative h-56 w-full cursor-pointer sm:h-64"
+              onClick={onFlip}
+              animate={{ rotateY }}
+              transition={{ duration: 0.5 }}
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              {/* Front of card */}
+              <div
+                className={`absolute inset-0 flex items-center justify-center rounded-2xl border-2 text-center shadow-xl ${dark ? 'border-white/20 bg-neutral-900 text-white' : 'border-black bg-white text-black'}`}
+                style={{ backfaceVisibility: 'hidden' }}
+              >
+                <h2 className="px-4 text-2xl font-bold sm:text-3xl">{card.term}</h2>
+              </div>
+              {/* Back of card */}
+              <div
+                className={`absolute inset-0 rounded-2xl text-left shadow-xl ${dark ? 'border-2 border-white/10' : 'border-2 border-black'}`}
+                style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden', backgroundColor: ACCENT }}
+              >
+                <div className="flex h-full flex-col p-4 text-white">
+                  <span className="mb-2 w-fit rounded-full border border-white/50 bg-white/10 px-3 py-1 text-[10px] font-semibold">{TYPE_LABELS[card.type]}</span>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{card.back}</p>
+                </div>
+              </div>
+            </motion.div>
+            {feedback && (
+              <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs text-white shadow ${feedback === 'correct' ? 'bg-green-700' : 'bg-red-700'}`}> 
+                {feedback === 'correct' ? '✓ Goed!' : '✗ Niet goed'}
+              </div>
+            )}
+          </div>
+        );
       }
 
-      // Effecten parsen
+      // Helper to pick an example sentence from the card's back side
+      function pickExample(card) {
+        const lines = card.back.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+        const line = lines.find((x) => x.startsWith('Functie:')) || lines.find((x) => x.startsWith('Betekenis:')) || lines[0];
+        return line.replace(/^Functie:\s*|^Betekenis:\s*/i, '');
+      }
+
+      // Parse effects from the card text into positive and negative lists for each layer
       function parseEffects(card) {
         const txt = card.back;
         const out = { functie: { pos: [], neg: [] }, betekenis: { pos: [], neg: [] } };
+        // Helper to extract lines for a given segment
         const pushLines = (segment, key) => {
           const lines = segment.split(/\n+/).map((s) => s.trim()).filter(Boolean);
           for (const l of lines) {
-            if (l.startsWith("✅")) out[key].pos.push(l.replace(/^✅\s*/, ""));
-            if (l.startsWith("❌")) out[key].neg.push(l.replace(/^❌\s*/, ""));
+            if (l.startsWith('✅')) out[key].pos.push(l.replace(/^✅\s*/, ''));
+            if (l.startsWith('❌')) out[key].neg.push(l.replace(/^❌\s*/, ''));
           }
         };
         const hasFunctie = /(^|\n)Functie:/i.test(txt);
         const hasBetekenis = /(^|\n)Betekenis:/i.test(txt);
-
         if (hasFunctie || hasBetekenis) {
           const funMatch = txt.split(/Betekenis:/i)[0];
           const betSegment = txt.split(/Betekenis:/i)[1];
-          if (/Functie:/i.test(funMatch)) pushLines(funMatch.split(/Functie:/i)[1], "functie");
-          if (betSegment !== undefined) pushLines(betSegment, "betekenis");
+          if (/Functie:/i.test(funMatch)) pushLines(funMatch.split(/Functie:/i)[1], 'functie');
+          if (betSegment !== undefined) pushLines(betSegment, 'betekenis');
         } else {
-          const key = card.type === "functie" ? "functie" : "betekenis";
+          const key = card.type === 'functie' ? 'functie' : 'betekenis';
           pushLines(txt, key);
         }
         return out;
       }
 
+      // Decide which layer to quiz on for challenge 3
       function pickLayerForQuestion(card, eff) {
         if (eff.functie.pos.length && eff.functie.neg.length && eff.betekenis.pos.length && eff.betekenis.neg.length) {
-          return Math.random() < 0.5 ? "functie" : "betekenis";
+          return Math.random() < 0.5 ? 'functie' : 'betekenis';
         }
         if (eff[card.type]?.pos.length && eff[card.type]?.neg.length) return card.type;
-        if (eff.functie.pos.length && eff.functie.neg.length) return "functie";
-        return "betekenis";
+        if (eff.functie.pos.length && eff.functie.neg.length) return 'functie';
+        return 'betekenis';
       }
 
+      // Collect all effects globally to build distractors
       function collectGlobalEffects(cards) {
         const pool = { functie: { pos: [], neg: [] }, betekenis: { pos: [], neg: [] } };
         for (const c of cards) {
@@ -148,13 +253,15 @@
       }
       const GLOBAL_EFFECTS = collectGlobalEffects(RAW_CARDS);
 
+      // Build a set of options for a given card in challenge 3
       function makeEffectSet(card) {
         const eff = parseEffects(card);
         const layer = pickLayerForQuestion(card, eff);
         const posList = eff[layer].pos;
         const negList = eff[layer].neg;
-        const correctPos = posList[Math.floor(Math.random() * posList.length)] || "";
-        const correctNeg = negList[Math.floor(Math.random() * negList.length)] || "";
+        const correctPos = posList[Math.floor(Math.random() * posList.length)] || '';
+        const correctNeg = negList[Math.floor(Math.random() * negList.length)] || '';
+        // Distractors
         const posDistr = shuffle(GLOBAL_EFFECTS[layer].pos.filter((x) => x !== correctPos)).slice(0, 3);
         const negDistr = shuffle(GLOBAL_EFFECTS[layer].neg.filter((x) => x !== correctNeg)).slice(0, 3);
         const posOptions = shuffle([correctPos, ...posDistr]).slice(0, 4);
@@ -162,104 +269,49 @@
         return { layer, posOptions, negOptions, correctPos, correctNeg };
       }
 
-      // ——— Wedstrijd 4: sorteren ———
+      // Round size for sorting game (challenge 4)
       const ROUND_SIZE_4 = 6;
       function initBoard4(sampleTerms) {
         return { pool: sampleTerms, functie: [], betekenis: [], beide: [] };
       }
 
-      // UI helpers ------------------------------------------------------------
-      const Btn = ({ children, className = "", dark = false, selected = false, style, ...props }) => {
-        const base = dark
-          ? "rounded-xl border-2 border-white/20 bg-neutral-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-700 active:scale-[0.98] transition"
-          : "rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-medium text-black shadow-sm hover:bg-fuchsia-50 active:scale-[0.98] transition";
-        const selStyle = selected ? { backgroundColor: ACCENT, borderColor: ACCENT, color: "#ffffff" } : {};
-        return (
-          <button {...props} style={{ ...(style || {}), ...selStyle }} className={`${base} ${className}`}>
-            {children}
-          </button>
-        );
-      };
-
-      const Stat = ({ label, value, dark = false }) => (
-        <div className={`rounded-xl px-3 py-2 text-center shadow-sm ${dark ? "border border-white/15 bg-neutral-900 text-white" : "border border-fuchsia-200 bg-white text-black"}`}>
-          <div className={`text-[10px] uppercase tracking-wide ${dark ? "text-gray-300" : "text-gray-500"}`}>{label}</div>
-          <div className="text-xl font-semibold">{value}</div>
-        </div>
-      );
-
-      function Card({ card, flipped, onFlip, feedback, dark = false }) {
-        const rotateY = flipped ? 180 : 0;
-        return (
-          <div className="relative mx-auto w-full max-w-md select-none" style={{ perspective: "1200px" }}>
-            <motion.div
-              className="relative h-56 w-full cursor-pointer sm:h-64"
-              onClick={onFlip}
-              animate={{ rotateY }}
-              transition={{ duration: 0.5 }}
-              style={{ transformStyle: "preserve-3d" }}
-            >
-              {/* FRONT */}
-              <div
-                className={`absolute inset-0 flex items-center justify-center rounded-2xl border-2 text-center shadow-xl ${dark ? "border-white/20 bg-neutral-900 text-white" : "border-black bg-white text-black"}`}
-                style={{ backfaceVisibility: "hidden" }}
-              >
-                <h2 className="px-4 text-2xl font-bold sm:text-3xl">{card.term}</h2>
-              </div>
-              {/* BACK */}
-              <div
-                className={`absolute inset-0 rounded-2xl text-left shadow-xl ${dark ? "border-2 border-white/10" : "border-2 border-black"}`}
-                style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", backgroundColor: ACCENT }}
-              >
-                <div className="flex h-full flex-col p-4 text-white">
-                  <span className="mb-2 w-fit rounded-full border border-white/50 bg-white/10 px-3 py-1 text-[10px] font-semibold">{TYPE_LABELS[card.type]}</span>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{card.back}</p>
-                </div>
-              </div>
-            </motion.div>
-            {feedback && (
-              <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs text-white shadow ${feedback === "correct" ? "bg-green-700" : "bg-red-700"}`}>
-                {feedback === "correct" ? "✓ Goed!" : "✗ Niet goed"}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      // --------------------------- APP --------------------------------------
+      // Main application component
       function App() {
         const sounds = useSounds();
-        const [mode, setMode] = useState("home"); // home | learn | challenge1 | challenge2 | challenge3 | challenge4
+        const [mode, setMode] = useState('home'); // Modes: home, learn, challenge1, challenge2, challenge3, challenge4
         const [orderSeed, setOrderSeed] = useState(0);
         const [isDark, setIsDark] = useState(() => {
           try {
-            const saved = window.localStorage.getItem("flashcards_dark");
-            if (saved !== null) return saved === "1";
+            const saved = window.localStorage.getItem('flashcards_dark');
+            if (saved !== null) return saved === '1';
           } catch {}
           const prefers = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
           return !!prefers;
         });
 
+        // Persist dark mode preference
         useEffect(() => {
-          try { window.localStorage.setItem("flashcards_dark", isDark ? "1" : "0"); } catch {}
+          try { window.localStorage.setItem('flashcards_dark', isDark ? '1' : '0'); } catch {}
         }, [isDark]);
 
+        // Build deck when orderSeed changes
         const deck = useMemo(() => shuffle(RAW_CARDS), [orderSeed]);
         const [index, setIndex] = useState(0);
         const [flipped, setFlipped] = useState(false);
         const [feedback, setFeedback] = useState(null);
 
-        // Wedstrijd 1 stats
+        // Stats for each challenge
+        // Challenge 1
         const [score1, setScore1] = useState(0);
         const [attempts1, setAttempts1] = useState(0);
         const [streak1, setStreak1] = useState(0);
         const [best1, setBest1] = useState(0);
-        // Wedstrijd 2 stats
+        // Challenge 2
         const [score2, setScore2] = useState(0);
         const [attempts2, setAttempts2] = useState(0);
         const [streak2, setStreak2] = useState(0);
         const [best2, setBest2] = useState(0);
-        // Wedstrijd 3 stats
+        // Challenge 3
         const [score3, setScore3] = useState(0);
         const [attempts3, setAttempts3] = useState(0);
         const [streak3, setStreak3] = useState(0);
@@ -267,7 +319,7 @@
         const [effectSet, setEffectSet] = useState(null);
         const [selPos, setSelPos] = useState(null);
         const [selNeg, setSelNeg] = useState(null);
-        // Wedstrijd 4 stats
+        // Challenge 4
         const [score4, setScore4] = useState(0);
         const [attempts4, setAttempts4] = useState(0);
         const [streak4, setStreak4] = useState(0);
@@ -275,47 +327,64 @@
         const [board4, setBoard4] = useState(() => initBoard4([]));
         const [result4, setResult4] = useState(null);
 
+        // Reset states when mode or orderSeed changes
         useEffect(() => {
           setIndex(0);
           setFlipped(false);
           setFeedback(null);
-          if (mode === "challenge3") {
+          if (mode === 'challenge3') {
             setEffectSet(makeEffectSet(deck[0]));
-            setSelPos(null); setSelNeg(null);
+            setSelPos(null);
+            setSelNeg(null);
           }
-          if (mode === "challenge4") {
+          if (mode === 'challenge4') {
             newRound4();
           }
         }, [mode, orderSeed]);
 
+        // Current card reference
         const current = deck[index];
-        const nextCard = () => { setFeedback(null); setFlipped(false); setIndex((i) => (i + 1 < deck.length ? i + 1 : 0)); };
+        const nextCard = () => {
+          setFeedback(null);
+          setFlipped(false);
+          setIndex((i) => (i + 1 < deck.length ? i + 1 : 0));
+        };
 
+        // Update effect set when current card changes in challenge 3
         useEffect(() => {
-          if (mode === "challenge3") {
+          if (mode === 'challenge3' && current) {
             setEffectSet(makeEffectSet(current));
-            setSelPos(null); setSelNeg(null);
+            setSelPos(null);
+            setSelNeg(null);
           }
         }, [current, mode]);
 
-        // TRAININGSVELD
-        const doFlip = () => { setFlipped((f) => !f); sounds.flip(); };
-        const doShuffle = () => { setOrderSeed((s) => s + 1); setIndex(0); setFlipped(false); sounds.shuffle(); };
+        // Learn mode actions
+        const doFlip = () => {
+          setFlipped((f) => !f);
+          sounds.flip();
+        };
+        const doShuffle = () => {
+          setOrderSeed((s) => s + 1);
+          setIndex(0);
+          setFlipped(false);
+          sounds.shuffle();
+        };
 
-        // WEDSTRIJD 1
+        // Challenge 1: guess the type
         const answerType = (guess) => {
           const correct = current.type === guess;
-          setFeedback(correct ? "correct" : "wrong");
+          setFeedback(correct ? 'correct' : 'wrong');
           setAttempts1((a) => a + 1);
           if (correct) {
             setScore1((s) => {
-              const n = s + 1;
+              const newScore = s + 1;
               setStreak1((st) => {
-                const ns = st + 1;
-                setBest1((b) => Math.max(b, ns));
-                return ns;
+                const newStreak = st + 1;
+                setBest1((b) => Math.max(b, newStreak));
+                return newStreak;
               });
-              return n;
+              return newScore;
             });
             sounds.correct();
             setTimeout(() => nextCard(), 650);
@@ -325,26 +394,25 @@
           }
         };
 
-        // WEDSTRIJD 2
+        // Challenge 2: multiple choice (recognise the term)
         const options = useMemo(() => {
           if (!current) return [];
           const others = shuffle(RAW_CARDS.filter((c) => c.term !== current.term)).slice(0, 3).map((c) => c.term);
           return shuffle([current.term, ...others]);
         }, [current]);
-
         const answerMC = (choice) => {
           const correct = choice === current.term;
-          setFeedback(correct ? "correct" : "wrong");
+          setFeedback(correct ? 'correct' : 'wrong');
           setAttempts2((a) => a + 1);
           if (correct) {
             setScore2((s) => {
-              const n = s + 1;
+              const newScore = s + 1;
               setStreak2((st) => {
-                const ns = st + 1;
-                setBest2((b) => Math.max(b, ns));
-                return ns;
+                const newStreak = st + 1;
+                setBest2((b) => Math.max(b, newStreak));
+                return newStreak;
               });
-              return n;
+              return newScore;
             });
             sounds.correct();
             setTimeout(() => nextCard(), 650);
@@ -354,21 +422,21 @@
           }
         };
 
-        // WEDSTRIJD 3
+        // Challenge 3: select positive and negative effects
         const submitEffects = () => {
-          if (!effectSet || selPos == null || selNeg == null) return;
+          if (!effectSet || selPos === null || selNeg === null) return;
           const correct = effectSet.posOptions[selPos] === effectSet.correctPos && effectSet.negOptions[selNeg] === effectSet.correctNeg;
-          setFeedback(correct ? "correct" : "wrong");
+          setFeedback(correct ? 'correct' : 'wrong');
           setAttempts3((a) => a + 1);
           if (correct) {
             setScore3((s) => {
-              const n = s + 1;
+              const newScore = s + 1;
               setStreak3((st) => {
-                const ns = st + 1;
-                setBest3((b) => Math.max(b, ns));
-                return ns;
+                const newStreak = st + 1;
+                setBest3((b) => Math.max(b, newStreak));
+                return newStreak;
               });
-              return n;
+              return newScore;
             });
             sounds.correct();
             setTimeout(() => nextCard(), 650);
@@ -378,7 +446,7 @@
           }
         };
 
-        // WEDSTRIJD 4 — helpers
+        // Challenge 4: sorting game
         function newRound4() {
           const sample = shuffle(RAW_CARDS).slice(0, ROUND_SIZE_4).map((c) => c.term);
           setBoard4(initBoard4(sample));
@@ -395,16 +463,16 @@
           });
         }
         function cycleDestOf(term) {
-          const keys = ["pool", ...TYPE_ORDER];
+          const keys = ['pool', ...TYPE_ORDER];
           const where = keys.find((k) => board4[k].includes(term));
           const idx = keys.indexOf(where);
           const next = keys[(idx + 1) % keys.length];
-          moveTerm(term, next === "pool" ? null : next);
+          moveTerm(term, next === 'pool' ? null : next);
         }
         function onDropFactory(dest) {
           return (e) => {
             e.preventDefault();
-            const term = e.dataTransfer.getData("text/plain");
+            const term = e.dataTransfer.getData('text/plain');
             moveTerm(term, dest);
           };
         }
@@ -412,22 +480,19 @@
           const placed = [...board4.functie, ...board4.betekenis, ...board4.beide];
           const total = board4.pool.length + placed.length;
           let correctCount = 0;
-          for (const t of board4.functie) if (CARD_TYPE_MAP[t] === "functie") correctCount++;
-          for (const t of board4.betekenis) if (CARD_TYPE_MAP[t] === "betekenis") correctCount++;
-          for (const t of board4.beide) if (CARD_TYPE_MAP[t] === "beide") correctCount++;
-
+          for (const t of board4.functie) if (CARD_TYPE_MAP[t] === 'functie') correctCount++;
+          for (const t of board4.betekenis) if (CARD_TYPE_MAP[t] === 'betekenis') correctCount++;
+          for (const t of board4.beide) if (CARD_TYPE_MAP[t] === 'beide') correctCount++;
           setScore4((s) => s + correctCount);
           setAttempts4((a) => a + 1);
-
           const allPlaced = board4.pool.length === 0;
           const perfect = allPlaced && correctCount === total;
-          setResult4(`${correctCount}/${total} correct${allPlaced ? " (alles geplaatst)" : " (nog niet alles geplaatst)"}`);
-
+          setResult4(`${correctCount}/${total} correct${allPlaced ? ' (alles geplaatst)' : ' (nog niet alles geplaatst)'}`);
           if (perfect) {
             setStreak4((st) => {
-              const ns = st + 1;
-              setBest4((b) => Math.max(b, ns));
-              return ns;
+              const newStreak = st + 1;
+              setBest4((b) => Math.max(b, newStreak));
+              return newStreak;
             });
             sounds.correct();
             setTimeout(() => newRound4(), 900);
@@ -437,12 +502,13 @@
           }
         }
 
+        // Zone component for challenge 4
         function Zone({ title, items, onDrop, dark }) {
           return (
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
-              className={`min-h-[140px] rounded-2xl border-2 p-3 shadow ${dark ? "border-white/20 bg-neutral-900 text-white" : "border-black bg-white text-black"}`}
+              className={`min-h-[140px] rounded-2xl border-2 p-3 shadow ${dark ? 'border-white/20 bg-neutral-900 text-white' : 'border-black bg-white text-black'}`}
             >
               <div className="mb-2 text-xs font-semibold opacity-80">{title}</div>
               <div className="flex flex-wrap gap-2">
@@ -450,9 +516,9 @@
                   <button
                     key={t}
                     draggable
-                    onDragStart={(e) => e.dataTransfer.setData("text/plain", t)}
+                    onDragStart={(e) => e.dataTransfer.setData('text/plain', t)}
                     onClick={() => cycleDestOf(t)}
-                    className={`select-none rounded-xl border px-2 py-1 text-xs shadow ${dark ? "border-white/15 bg-neutral-800 text-white" : "border-black bg-white text-black"}`}
+                    className={`select-none rounded-xl border px-2 py-1 text-xs shadow ${dark ? 'border-white/15 bg-neutral-800 text-white' : 'border-black bg-white text-black'}`}
                     title="Klik om te verplaatsen / sleep naar een vak"
                   >
                     {t}
@@ -463,8 +529,9 @@
           );
         }
 
+        // Stats bar component: shows different stats depending on mode
         function StatsBar() {
-          if (mode === "challenge1") {
+          if (mode === 'challenge1') {
             return (
               <section className="mb-4 grid grid-cols-4 gap-2 sm:gap-3">
                 <Stat label="Score" value={score1} dark={isDark} />
@@ -474,7 +541,7 @@
               </section>
             );
           }
-          if (mode === "challenge2") {
+          if (mode === 'challenge2') {
             return (
               <section className="mb-4 grid grid-cols-4 gap-2 sm:gap-3">
                 <Stat label="Score" value={score2} dark={isDark} />
@@ -484,7 +551,7 @@
               </section>
             );
           }
-          if (mode === "challenge3") {
+          if (mode === 'challenge3') {
             return (
               <section className="mb-4 grid grid-cols-4 gap-2 sm:gap-3">
                 <Stat label="Score" value={score3} dark={isDark} />
@@ -494,7 +561,7 @@
               </section>
             );
           }
-          if (mode === "challenge4") {
+          if (mode === 'challenge4') {
             return (
               <section className="mb-4 grid grid-cols-4 gap-2 sm:gap-3">
                 <Stat label="Score" value={score4} dark={isDark} />
@@ -504,7 +571,7 @@
               </section>
             );
           }
-          if (mode === "learn") {
+          if (mode === 'learn') {
             return (
               <section className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
                 <Stat label="Kaarten" value={deck.length} dark={isDark} />
@@ -516,61 +583,59 @@
           return null;
         }
 
+        // Header with navigation buttons
         function HeaderTabs() {
           return (
             <div className="flex items-center gap-1 sm:gap-2">
-              <Btn onClick={() => setMode("home")} selected={mode === "home"} dark={isDark}>Het Clubhuis</Btn>
-              <Btn onClick={() => setMode("learn")} selected={mode === "learn"} dark={isDark}>Het Trainingsveld</Btn>
-              <Btn onClick={() => setMode("challenge1")} selected={mode === "challenge1"} dark={isDark}>Wedstrijd 1</Btn>
-              <Btn onClick={() => setMode("challenge2")} selected={mode === "challenge2"} dark={isDark}>Wedstrijd 2</Btn>
-              <Btn onClick={() => setMode("challenge3")} selected={mode === "challenge3"} dark={isDark}>Wedstrijd 3</Btn>
-              <Btn onClick={() => setMode("challenge4")} selected={mode === "challenge4"} dark={isDark}>Wedstrijd 4</Btn>
-              <Btn onClick={() => setIsDark((d) => !d)} dark={isDark} aria-label="Toggle dark mode">{isDark ? "☀️" : "🌙"}</Btn>
+              <Btn onClick={() => setMode('home')} selected={mode === 'home'} dark={isDark}>Het Clubhuis</Btn>
+              <Btn onClick={() => setMode('learn')} selected={mode === 'learn'} dark={isDark}>Het Trainingsveld</Btn>
+              <Btn onClick={() => setMode('challenge1')} selected={mode === 'challenge1'} dark={isDark}>Wedstrijd 1</Btn>
+              <Btn onClick={() => setMode('challenge2')} selected={mode === 'challenge2'} dark={isDark}>Wedstrijd 2</Btn>
+              <Btn onClick={() => setMode('challenge3')} selected={mode === 'challenge3'} dark={isDark}>Wedstrijd 3</Btn>
+              <Btn onClick={() => setMode('challenge4')} selected={mode === 'challenge4'} dark={isDark}>Wedstrijd 4</Btn>
+              <Btn onClick={() => setIsDark((d) => !d)} dark={isDark} aria-label="Toggle dark mode">{isDark ? '☀️' : '🌙'}</Btn>
             </div>
           );
         }
 
+        // Home screen component with navigation to learn and challenges
         function Home() {
           return (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className={`rounded-2xl border-2 p-5 shadow ${isDark ? "border-white/20 bg-neutral-900 text-white" : "border-black bg-white text-black"}`}>
+              <div className={`rounded-2xl border-2 p-5 shadow ${isDark ? 'border-white/20 bg-neutral-900 text-white' : 'border-black bg-white text-black'}`}>
                 <h2 className="text-xl font-bold">Het Trainingsveld</h2>
                 <p className="mt-1 text-sm opacity-80">Train je kennis: bekijk kaarten, flip voor uitleg en schud het deck.</p>
-                <Btn className="mt-3" onClick={() => setMode("learn")} selected={true} dark={isDark}>
+                <Btn className="mt-3" onClick={() => setMode('learn')} selected={true} dark={isDark}>
                   Naar het Trainingsveld
                 </Btn>
               </div>
-              <div className={`rounded-2xl border-2 p-5 shadow ${isDark ? "border-white/20 bg-neutral-900 text-white" : "border-black bg-white text-black"}`}>
+              <div className={`rounded-2xl border-2 p-5 shadow ${isDark ? 'border-white/20 bg-neutral-900 text-white' : 'border-black bg-white text-black'}`}>
                 <h2 className="text-xl font-bold">Wedstrijden</h2>
                 <div className="mt-2 grid gap-2">
-                  <Btn onClick={() => setMode("challenge1")} dark={isDark}>Wedstrijd 1 – Type kiezen</Btn>
-                  <Btn onClick={() => setMode("challenge2")} dark={isDark}>Wedstrijd 2 – Herken de term</Btn>
-                  <Btn onClick={() => setMode("challenge3")} dark={isDark}>Wedstrijd 3 – Kies de effecten</Btn>
-                  <Btn onClick={() => setMode("challenge4")} dark={isDark}>Wedstrijd 4 – Sorteren (sleep)</Btn>
+                  <Btn onClick={() => setMode('challenge1')} dark={isDark}>Wedstrijd 1 – Type kiezen</Btn>
+                  <Btn onClick={() => setMode('challenge2')} dark={isDark}>Wedstrijd 2 – Herken de term</Btn>
+                  <Btn onClick={() => setMode('challenge3')} dark={isDark}>Wedstrijd 3 – Kies de effecten</Btn>
+                  <Btn onClick={() => setMode('challenge4')} dark={isDark}>Wedstrijd 4 – Sorteren (sleep)</Btn>
                 </div>
               </div>
             </div>
           );
         }
 
+        // Render UI based on current mode
         return (
-          <div className={`min-h-screen p-4 sm:p-6 ${isDark ? "bg-gradient-to-b from-neutral-900 to-black text-white" : "bg-gradient-to-b from-fuchsia-50 to-white text-black"}`}>
+          <div className={`min-h-screen p-4 sm:p-6 ${isDark ? 'bg-gradient-to-b from-neutral-900 to-black text-white' : 'bg-gradient-to-b from-fuchsia-50 to-white text-black'}`}>
             <div className="mx-auto w-full max-w-screen-sm sm:max-w-2xl">
               {/* Header */}
               <header className="mb-4 flex items-center justify-between gap-2">
-                <h1 className={`font-bold ${isDark ? "text-white" : "text-black"} text-lg sm:text-2xl`}>
+                <h1 className={`font-bold ${isDark ? 'text-white' : 'text-black'} text-lg sm:text-2xl`}>
                   Functies - Betekenis: de Game!
                 </h1>
                 <HeaderTabs />
               </header>
-
               <StatsBar />
-
-              {/* HET CLUBHUIS */}
-              {mode === "home" && <Home />}
-
-              {/* HET TRAININGSVELD */}
-              {mode === "learn" && current && (
+              {mode === 'home' && <Home />}
+              {mode === 'learn' && current && (
                 <>
                   <Card card={current} flipped={flipped} onFlip={doFlip} feedback={feedback} dark={isDark} />
                   <div className="sticky bottom-2 mt-4 flex w-full justify-center gap-2">
@@ -580,9 +645,7 @@
                   </div>
                 </>
               )}
-
-              {/* WEDSTRIJD 1 */}
-              {mode === "challenge1" && current && (
+              {mode === 'challenge1' && current && (
                 <>
                   <Card card={current} flipped={flipped} onFlip={doFlip} feedback={feedback} dark={isDark} />
                   <div className="sticky bottom-2 mt-4 grid w-full grid-cols-3 gap-2">
@@ -592,134 +655,76 @@
                   </div>
                 </>
               )}
-
-              {/* WEDSTRIJD 2 */}
-              {mode === "challenge2" && current && (
+              {mode === 'challenge2' && current && (
                 <div className="mx-auto mt-2 w-full max-w-xl">
-                  <div className={`rounded-2xl border-2 p-4 shadow ${isDark ? "border-white/20 bg-neutral-900" : "border-black bg-white"}`}>
-                    <div className={`text-xs ${isDark ? "text-gray-300" : "text-gray-700"}`}>Voorbeeld uit sport</div>
-                    <div className={`mt-1 font-semibold sm:text-lg ${isDark ? "text-white text-base" : "text-black text-base"}`}>{pickExample(current)}</div>
+                  <div className={`rounded-2xl border-2 p-4 shadow ${isDark ? 'border-white/20 bg-neutral-900' : 'border-black bg-white'}`}>
+                    <div className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Voorbeeld uit sport</div>
+                    <div className={`mt-1 font-semibold sm:text-lg ${isDark ? 'text-white text-base' : 'text-black text-base'}`}>{pickExample(current)}</div>
                   </div>
                   <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {options.map((opt) => (
-                      <Btn key={opt} onClick={() => answerMC(opt)} className="text-left" dark={isDark}>
-                        {opt}
-                      </Btn>
+                      <Btn key={opt} onClick={() => answerMC(opt)} className="text-left" dark={isDark}>{opt}</Btn>
                     ))}
                   </div>
                   {feedback && (
-                    <div className={`mt-3 w-full rounded-xl px-3 py-2 text-center text-sm text-white ${feedback === "correct" ? "bg-green-700" : "bg-red-700"}`}>
-                      {feedback === "correct" ? "✓ Goed!" : "✗ Niet goed — probeer opnieuw"}
+                    <div className={`mt-3 w-full rounded-xl px-3 py-2 text-center text-sm text-white ${feedback === 'correct' ? 'bg-green-700' : 'bg-red-700'}`}>
+                      {feedback === 'correct' ? '✓ Goed!' : '✗ Niet goed — probeer opnieuw'}
                     </div>
                   )}
                 </div>
               )}
-
-              {/* WEDSTRIJD 3 */}
-              {mode === "challenge3" && current && effectSet && (
+              {mode === 'challenge3' && current && effectSet && (
                 <div className="mx-auto mt-2 w-full max-w-2xl">
-                  <div className={`rounded-2xl border-2 p-4 shadow ${isDark ? "border-white/20 bg-neutral-900" : "border-black bg-white"}`}>
+                  <div className={`rounded-2xl border-2 p-4 shadow ${isDark ? 'border-white/20 bg-neutral-900' : 'border-black bg-white'}`}>
                     <div className="text-xs opacity-80">
                       Kies 1 <b>positief</b> en 1 <b>negatief</b> effect voor <b>{current.term}</b> — <b>{TYPE_LABELS[effectSet.layer]}</b>
                     </div>
                   </div>
-
                   <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className={`rounded-2xl border-2 p-3 shadow ${isDark ? "border-white/20 bg-neutral-900" : "border-black bg-white"}`}>
+                    <div className={`rounded-2xl border-2 p-3 shadow ${isDark ? 'border-white/20 bg-neutral-900' : 'border-black bg-white'}`}>
                       <div className="mb-2 text-xs font-semibold">Positieve effecten</div>
                       <div className="grid gap-2">
                         {effectSet.posOptions.map((opt, i) => (
-                          <Btn key={i} onClick={() => setSelPos(i)} selected={selPos===i} className="text-left" dark={isDark}>{opt}</Btn>
+                          <Btn key={i} onClick={() => setSelPos(i)} selected={selPos === i} className="text-left" dark={isDark}>{opt}</Btn>
                         ))}
                       </div>
                     </div>
-                    <div className={`rounded-2xl border-2 p-3 shadow ${isDark ? "border-white/20 bg-neutral-900" : "border-black bg-white"}`}>
+                    <div className={`rounded-2xl border-2 p-3 shadow ${isDark ? 'border-white/20 bg-neutral-900' : 'border-black bg-white'}`}>
                       <div className="mb-2 text-xs font-semibold">Negatieve effecten</div>
                       <div className="grid gap-2">
                         {effectSet.negOptions.map((opt, i) => (
-                          <Btn key={i} onClick={() => setSelNeg(i)} selected={selNeg===i} className="text-left" dark={isDark}>{opt}</Btn>
+                          <Btn key={i} onClick={() => setSelNeg(i)} selected={selNeg === i} className="text-left" dark={isDark}>{opt}</Btn>
                         ))}
                       </div>
                     </div>
                   </div>
-
                   <div className="mt-3 flex items-center gap-2">
-                    <Btn onClick={submitEffects} dark={isDark} disabled={selPos==null || selNeg==null} style={{opacity: (selPos==null||selNeg==null)?0.6:1}}>Bevestig</Btn>
+                    <Btn onClick={submitEffects} dark={isDark} disabled={selPos == null || selNeg == null} style={{ opacity: selPos == null || selNeg == null ? 0.6 : 1 }}>Bevestig</Btn>
                     <Btn onClick={() => { setEffectSet(makeEffectSet(current)); setSelPos(null); setSelNeg(null); setFeedback(null); }} dark={isDark}>Andere opties</Btn>
                   </div>
-
                   {feedback && (
-                    <div className={`mt-3 w-full rounded-xl px-3 py-2 text-center text-sm text-white ${feedback === "correct" ? "bg-green-700" : "bg-red-700"}`}>
-                      {feedback === "correct" ? "✓ Goed!" : `✗ Niet goed — juiste: + ${effectSet.correctPos} / − ${effectSet.correctNeg}`}
+                    <div className={`mt-3 w-full rounded-xl px-3 py-2 text-center text-sm text-white ${feedback === 'correct' ? 'bg-green-700' : 'bg-red-700'}`}>
+                      {feedback === 'correct' ? '✓ Goed!' : `✗ Niet goed — juiste: + ${effectSet.correctPos} / − ${effectSet.correctNeg}`}
                     </div>
                   )}
                 </div>
               )}
-
-              {/* WEDSTRIJD 4 */}
-              {mode === "challenge4" && (
+              {mode === 'challenge4' && (
                 <div className="mx-auto mt-2 w-full max-w-3xl">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <Btn onClick={()=>{
-                      const sample = shuffle(RAW_CARDS).slice(0, ROUND_SIZE_4).map((c)=>c.term);
-                      setBoard4(initBoard4(sample));
-                      setResult4(null);
-                    }} dark={isDark}>Nieuwe set</Btn>
-                    <Btn onClick={()=>{
-                      const placed = [...board4.functie, ...board4.betekenis, ...board4.beide];
-                      const total = board4.pool.length + placed.length;
-                      let correctCount = 0;
-                      for (const t of board4.functie) if (CARD_TYPE_MAP[t] === "functie") correctCount++;
-                      for (const t of board4.betekenis) if (CARD_TYPE_MAP[t] === "betekenis") correctCount++;
-                      for (const t of board4.beide) if (CARD_TYPE_MAP[t] === "beide") correctCount++;
-
-                      setScore4((s) => s + correctCount);
-                      setAttempts4((a) => a + 1);
-
-                      const allPlaced = board4.pool.length === 0;
-                      const perfect = allPlaced && correctCount === total;
-                      setResult4(`${correctCount}/${total} correct${allPlaced ? " (alles geplaatst)" : " (nog niet alles geplaatst)"}`);
-
-                      if (perfect) {
-                        setStreak4((st) => {
-                          const ns = st + 1;
-                          setBest4((b) => Math.max(b, ns));
-                          return ns;
-                        });
-                        sounds.correct();
-                        setTimeout(() => {
-                          const sample = shuffle(RAW_CARDS).slice(0, ROUND_SIZE_4).map((c)=>c.term);
-                          setBoard4(initBoard4(sample));
-                          setResult4(null);
-                        }, 900);
-                      } else {
-                        setStreak4(0);
-                        sounds.wrong();
-                      }
-                    }} dark={isDark}>Check antwoorden</Btn>
+                    <Btn onClick={newRound4} dark={isDark}>Nieuwe set</Btn>
+                    <Btn onClick={checkSort} dark={isDark}>Check antwoorden</Btn>
                     {result4 && (
-                      <span className={`rounded-xl px-3 py-2 text-sm ${isDark ? "bg-neutral-800 text-white" : "bg-neutral-100 text-black"}`}>{result4}</span>
+                      <span className={`rounded-xl px-3 py-2 text-sm ${isDark ? 'bg-neutral-800 text-white' : 'bg-neutral-100 text-black'}`}>{result4}</span>
                     )}
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <Zone title="Nog te plaatsen"
-                          items={board4.pool}
-                          onDrop={(e)=>{ e.preventDefault(); const term=e.dataTransfer.getData("text/plain"); moveTerm(term, null); }}
-                          dark={isDark} />
-                    <Zone title="Functie"
-                          items={board4.functie}
-                          onDrop={(e)=>{ e.preventDefault(); const term=e.dataTransfer.getData("text/plain"); moveTerm(term, "functie"); }}
-                          dark={isDark} />
-                    <Zone title="Betekenis"
-                          items={board4.betekenis}
-                          onDrop={(e)=>{ e.preventDefault(); const term=e.dataTransfer.getData("text/plain"); moveTerm(term, "betekenis"); }}
-                          dark={isDark} />
-                    <Zone title="Beide"
-                          items={board4.beide}
-                          onDrop={(e)=>{ e.preventDefault(); const term=e.dataTransfer.getData("text/plain"); moveTerm(term, "beide"); }}
-                          dark={isDark} />
+                    <Zone title="Nog te plaatsen" items={board4.pool} onDrop={onDropFactory(null)} dark={isDark} />
+                    <Zone title="Functie" items={board4.functie} onDrop={onDropFactory('functie')} dark={isDark} />
+                    <Zone title="Betekenis" items={board4.betekenis} onDrop={onDropFactory('betekenis')} dark={isDark} />
+                    <Zone title="Beide" items={board4.beide} onDrop={onDropFactory('beide')} dark={isDark} />
                   </div>
-                  <div className={`mt-2 text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                  <div className={`mt-2 text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                     Tip: Sleep termen naar de juiste vakken of klik op een term om door de vakken te cyclen.
                   </div>
                 </div>
@@ -729,7 +734,7 @@
         );
       }
 
-      // Render de app
+      // Kick off the React application
       ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
   </body>
