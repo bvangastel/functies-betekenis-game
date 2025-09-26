@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Functies - Betekenis: de Game!</title>
+
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React 18 + ReactDOM (UMD) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Framer Motion (UMD) -->
+    <script src="https://unpkg.com/framer-motion/dist/framer-motion.umd.js"></script>
+
+    <!-- Babel voor JSX in de browser (ontwikkel/demo gebruik) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="min-h-screen">
+    <div id="root"></div>
+
+    <!-- JOUW GAME (React + Framer Motion + Tailwind via CDN) -->
+    <script type="text/babel">
+      const { useEffect, useMemo, useRef, useState } = React;
+      const { motion } = window.framerMotion;
+
+      // Kleuren
+      const ACCENT = "#e20074"; // magenta
+
+      // --- Dataset -----------------------------------------------------------
+      const RAW_CARDS = [
+        { term: "Gezondheid", type: "beide", back: `Functie: Sportbeleid om ziekteverzuim te verlagen.\n✅ Minder zorgkosten, fittere bevolking.\n❌ Druk tot bewegen, ongelijkheid in toegang.\n\nBetekenis: Iemand die hardloopt om stress kwijt te raken.\n✅ Beter welzijn, meer energie.\n❌ Blessures, burn-out.` },
+        { term: "Economisch", type: "beide", back: `Functie: WK Voetbal met miljardenomzet via tv-rechten en sponsoring.\n✅ Werkgelegenheid, economische groei.\n❌ Winst niet bij lokale bevolking, uitbuiting.\n\nBetekenis: Topsporter of trainer die betaald krijgt.\n✅ Persoonlijke financiële zekerheid, erkenning.\n❌ Grote prestatiedruk, korte loopbaan.` },
+        { term: "Identificatie", type: "betekenis", back: `Fan voelt zich deel van Feyenoord.\n✅ Gevoel ergens bij te horen.\n❌ Hooliganisme, teleurstelling bij verlies.` },
+        { term: "Socialisatie", type: "beide", back: `Functie: Sportverenigingen leren kinderen discipline en samenwerking.\n✅ Fair play, maatschappelijke waarden.\n❌ Drill of conformisme.\n\nBetekenis: Tiener leert via basketbal zelfvertrouwen en teamwork.\n✅ Versterkt persoonlijkheid en vaardigheden.\n❌ Risico op agressie of deviant gedrag.` },
+        { term: "Democratisering", type: "functie", back: `Voetbaltoernooien waar alle kinderen mogen meedoen.\n✅ Gelijke kansen, toegankelijkheid.\n❌ Financiële/culturele drempels blijven.` },
+        { term: "Distinctie", type: "betekenis", back: `Golf of polo als elitesport.\n✅ Status tonen, eigen smaak benadrukken.\n❌ Klassenverschillen, uitsluiting.` },
+        { term: "Herstel", type: "betekenis", back: `Recreatief zwemmen na werk.\n✅ Stressvermindering, ontspanning.\n❌ Soms geen effect, of nieuwe vermoeidheid.` },
+        { term: "Identiteit", type: "betekenis", back: `Scheidsrechter die identiteit ontleent aan zijn rol.\n✅ Duidelijk zelfbeeld, erkenning.\n❌ Chauvinisme of verlies van rol na carrière.` },
+        { term: "Interactie", type: "betekenis", back: `Ouderen die lid blijven van een tennisvereniging.\n✅ Sociaal netwerk, vriendschappen.\n❌ Conflicten of rivaliteit.` },
+        { term: "Integratie", type: "functie", back: `Migrantenjongeren in lokale voetbalclubs.\n✅ Sociale cohesie.\n❌ Segregatie of discriminatie mogelijk.` },
+        { term: "Militair", type: "functie", back: `Sovjet-fitnessprogramma gericht op paraatheid.\n✅ Discipline, fysieke paraatheid.\n❌ Instrumentalisering voor militaire doelen.` },
+        { term: "Ontlading (catharsis)", type: "betekenis", back: `Boksen of spinning om frustraties kwijt te raken.\n✅ Minder stress en spanning.\n❌ Agressie kan toenemen bij frustratie/verlies.` },
+        { term: "Ontspanning", type: "betekenis", back: `Kijken naar de Tour de France.\n✅ Ontsnapping, vermaak.\n❌ Commercieel spektakel, oppervlakkigheid.` },
+        { term: "Ontwikkeling / zelfontplooiing", type: "betekenis", back: `Aikido als pad naar zelfdiscipline en zelfkennis.\n✅ Zelfvertrouwen, morele vorming.\n❌ Machogedrag of afhankelijkheid van autoritaire trainers.` },
+        { term: "Plezier / hedonisme", type: "betekenis", back: `Voetballen op straat met vrienden puur voor de lol.\n✅ Genot, humor, speelsheid.\n❌ Overmatig escapisme, vrijblijvendheid.` },
+        { term: "Maatschappelijke controle", type: "functie", back: `Gemeente investeert in sportclubs om jeugd van straat te houden.\n✅ Ordescheppend, voorkomt criminaliteit.\n❌ Repressief of instrumenteel ingezet.` },
+        { term: "Politiek", type: "functie", back: `Olympische Spelen 1936 als propaganda.\n✅ Diplomatiek/ideologisch instrument.\n❌ Misbruik voor politieke doeleinden.` },
+        { term: "Reproductie van ideologie", type: "functie", back: `Olympisch vuur, vlagceremonies.\n✅ Nationale eenheid en waarden.\n❌ Bevestigt nationalisme of ongelijkheid.` },
+        { term: "Reproductie van klassenverhoudingen", type: "functie", back: `Skyboxen in stadions.\n✅ Zichtbaarheid van doelgroepen (marketing).\n❌ Vergroten van ongelijkheid.` },
+        { term: "Reproductie van sekseverhoudingen", type: "functie", back: `Vrouwenvoetbal minder media-aandacht.\n✅ Kansen voor female empowerment.\n❌ Sekseongelijkheid, risico op misbruik.` },
+        { term: "Status", type: "betekenis", back: `High school quarterback met hoge populariteit.\n✅ Prestige, sociale erkenning.\n❌ Uitsluiting van minder getalenteerden.` },
+        { term: "Sociale mobiliteit", type: "functie", back: `Arme voetballer wordt prof in Europa.\n✅ Opwaartse sociale stijging.\n❌ Vaak mythe; succes tijdelijk/uitzonderlijk.` },
+        { term: "Taal (linguïstisch)", type: "functie", back: `Media: "Politiek is topsport".\n✅ Gemeenschappelijke codes, communicatie.\n❌ Clichés, simplificatie.` },
+        { term: "Vervreemding", type: "functie", back: `Turnsters onder zware druk vanaf jonge leeftijd.\n✅ Topsportprestaties mogelijk.\n❌ Verlies autonomie, vervreemding van lichaam.` },
+      ];
+
+      const TYPE_LABELS = { functie: "Functie", betekenis: "Betekenis", beide: "Beide" };
+      const TYPE_ORDER = ["functie", "betekenis", "beide"];
+
+      // Helpers ---------------------------------------------------------------
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+      const CARD_TYPE_MAP = Object.fromEntries(RAW_CARDS.map((c) => [c.term, c.type]));
+
+      // Geluidseffecten via Web Audio (geen externe files)
+      function useSounds() {
+        const ctxRef = useRef(null);
+        function ensureCtx() {
+          if (!ctxRef.current) ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+          return ctxRef.current;
+        }
+        function beep({ freq = 660, duration = 0.12, type = "sine", vol = 0.05 } = {}) {
+          const ctx = ensureCtx();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = type; o.frequency.value = freq;
+          g.gain.value = vol; o.connect(g); g.connect(ctx.destination);
+          o.start(); o.stop(ctx.currentTime + duration);
+        }
+        return {
+          correct: () => { beep({ freq: 880, type: "triangle" }); setTimeout(() => beep({ freq: 1320, type: "triangle" }), 90); },
+          wrong: () => { beep({ freq: 200, type: "sawtooth" }); },
+          flip: () => { beep({ freq: 520, type: "square", duration: 0.07 }); },
+          shuffle: () => { beep({ freq: 660, type: "sine", duration: 0.06 }); beep({ freq: 740, duration: 0.06 }); beep({ freq: 820, duration: 0.06 }); },
+        };
+      }
+
+      function pickExample(card) {
+        const lines = card.back.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+        const l = lines.find((x) => x.startsWith("Functie:")) || lines.find((x) => x.startsWith("Betekenis:")) || lines[0];
+        return l.replace(/^Functie:\s*|^Betekenis:\s*/i, "");
+      }
+
+      // Effecten parsen
+      function parseEffects(card) {
+        const txt = card.back;
+        const out = { functie: { pos: [], neg: [] }, betekenis: { pos: [], neg: [] } };
+        const pushLines = (segment, key) => {
+          const lines = segment.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+          for (const l of lines) {
+            if (l.startsWith("✅")) out[key].pos.push(l.replace(/^✅\s*/, ""));
+            if (l.startsWith("❌")) out[key].neg.push(l.replace(/^❌\s*/, ""));
+          }
+        };
+        const hasFunctie = /(^|\n)Functie:/i.test(txt);
+        const hasBetekenis = /(^|\n)Betekenis:/i.test(txt);
+
+        if (hasFunctie || hasBetekenis) {
+          const funMatch = txt.split(/Betekenis:/i)[0];
+          const betSegment = txt.split(/Betekenis:/i)[1];
+          if (/Functie:/i.test(funMatch)) pushLines(funMatch.split(/Functie:/i)[1], "functie");
+          if (betSegment !== undefined) pushLines(betSegment, "betekenis");
+        } else {
+          const key = card.type === "functie" ? "functie" : "betekenis";
+          pushLines(txt, key);
+        }
+        return out;
+      }
+
+      function pickLayerForQuestion(card, eff) {
+        if (eff.functie.pos.length && eff.functie.neg.length && eff.betekenis.pos.length && eff.betekenis.neg.length) {
+          return Math.random() < 0.5 ? "functie" : "betekenis";
+        }
+        if (eff[card.type]?.pos.length && eff[card.type]?.neg.length) return card.type;
+        if (eff.functie.pos.length && eff.functie.neg.length) return "functie";
+        return "betekenis";
+      }
+
+      function collectGlobalEffects(cards) {
+        const pool = { functie: { pos: [], neg: [] }, betekenis: { pos: [], neg: [] } };
+        for (const c of cards) {
+          const e = parseEffects(c);
+          pool.functie.pos.push(...e.functie.pos);
+          pool.functie.neg.push(...e.functie.neg);
+          pool.betekenis.pos.push(...e.betekenis.pos);
+          pool.betekenis.neg.push(...e.betekenis.neg);
+        }
+        return pool;
+      }
+      const GLOBAL_EFFECTS = collectGlobalEffects(RAW_CARDS);
+
+      function makeEffectSet(card) {
+        const eff = parseEffects(card);
+        const layer = pickLayerForQuestion(card, eff);
+        const posList = eff[layer].pos;
+        const negList = eff[layer].neg;
+        const correctPos = posList[Math.floor(Math.random() * posList.length)] || "";
+        const correctNeg = negList[Math.floor(Math.random() * negList.length)] || "";
+        const posDistr = shuffle(GLOBAL_EFFECTS[layer].pos.filter((x) => x !== correctPos)).slice(0, 3);
+        const negDistr = shuffle(GLOBAL_EFFECTS[layer].neg.filter((x) => x !== correctNeg)).slice(0, 3);
+        const posOptions = shuffle([correctPos, ...posDistr]).slice(0, 4);
+        const negOptions = shuffle([correctNeg, ...negDistr]).slice(0, 4);
+        return { layer, posOptions, negOptions, correctPos, correctNeg };
+      }
+
+      // ——— Wedstrijd 4: sorteren ———
+      const ROUND_SIZE_4 = 6;
+      function initBoard4(sampleTerms) {
+        return { pool: sampleTerms, functie: [], betekenis: [], beide: [] };
+      }
+
+      // UI helpers ------------------------------------------------------------
+      const Btn = ({ children, className = "", dark = false, selected = false, style, ...props }) => {
+        const base = dark
+          ? "rounded-xl border-2 border-white/20 bg-neutral-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-neutral-700 active:scale-[0.98] transition"
+          : "rounded-xl border-2 border-black bg-white px-4 py-2 text-sm font-medium text-black shadow-sm hover:bg-fuchsia-50 active:scale-[0.98] transition";
+        const selStyle = selected ? { backgroundColor: ACCENT, borderColor: ACCENT, color: "#ffffff" } : {};
+        return (
+          <button {...props} style={{ ...(style || {}), ...selStyle }} className={`${base} ${className}`}>
+            {children}
+          </button>
+        );
+      };
+
+      const Stat = ({ label, value, dark = false }) => (
+        <div className={`rounded-xl px-3 py-2 text-center shadow-sm ${dark ? "border border-white/15 bg-neutral-900 text-white" : "border border-fuchsia-200 bg-white text-black"}`}>
+          <div className={`text-[10px] uppercase tracking-wide ${dark ? "text-gray-300" : "text-gray-500"}`}>{label}</div>
+          <div className="text-xl font-semibold">{value}</div>
+        </div>
+      );
+
+      function Card({ card, flipped, onFlip, feedback, dark = false }) {
+        const rotateY = flipped ? 180 : 0;
+        return (
+          <div className="relative mx-auto w-full max-w-md select-none" style={{ perspective: "1200px" }}>
+            <motion.div
+              className="relative h-56 w-full cursor-pointer sm:h-64"
+              onClick={onFlip}
+              animate={{ rotateY }}
+              transition={{ duration: 0.5 }}
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              {/* FRONT */}
+              <div
+                className={`absolute inset-0 flex items-center justify-center rounded-2xl border-2 text-center shadow-xl ${dark ? "border-white/20 bg-neutral-900 text-white" : "border-black bg-white text-black"}`}
+                style={{ backfaceVisibility: "hidden" }}
+              >
+                <h2 className="px-4 text-2xl font-bold sm:text-3xl">{card.term}</h2>
+              </div>
+              {/* BACK */}
+              <div
+                className={`absolute inset-0 rounded-2xl text-left shadow-xl ${dark ? "border-2 border-white/10" : "border-2 border-black"}`}
+                style={{ transform: "rotateY(180deg)", backfaceVisibility: "hidden", backgroundColor: ACCENT }}
+              >
+                <div className="flex h-full flex-col p-4 text-white">
+                  <span className="mb-2 w-fit rounded-full border border-white/50 bg-white/10 px-3 py-1 text-[10px] font-semibold">{TYPE_LABELS[card.type]}</span>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{card.back}</p>
+                </div>
+              </div>
+            </motion.div>
+            {feedback && (
+              <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs text-white shadow ${feedback === "correct" ? "bg-green-700" : "bg-red-700"}`}>
+                {feedback === "correct" ? "✓ Goed!" : "✗ Niet goed"}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // --------------------------- APP --------------------------------------
+      function App() {
+        const sounds = useSounds();
+        const [mode, setMode] = useState("home"); // home | learn | challenge1 | challenge2 | challenge3 | challenge4
+        const [orderSeed, setOrderSeed] = useState(0);
+        const [isDark, setIsDark] = useState(() => {
+          try {
+            const saved = window.localStorage.getItem("flashcards_dark");
+            if (saved !== null) return saved === "1";
+          } catch {}
+          const prefers = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          return !!prefers;
+        });
+
+        useEffect(() => {
+          try { window.localStorage.setItem("flashcards_dark", isDark ? "1" : "0"); } catch {}
+        }, [isDark]);
+
+        const deck = useMemo(() => shuffle(RAW_CARDS), [orderSeed]);
+        const [index, setIndex] = useState(0);
+        const [flipped, setFlipped] = useState(false);
+        const [feedback, se]()
